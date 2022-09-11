@@ -11,6 +11,7 @@
     "build:wasm": "cd wasm && wasm-pack build"
   },
   "dependencies": {
+    "@material-tailwind/react": "^1.2.4",
     "classnames": "^2.3.1",
     "hoist-non-react-statics": "^3.3.2",
     "next": "^12.2.5",

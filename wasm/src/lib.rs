@@ -3,6 +3,7 @@ mod utils;
 extern crate serde_json;
 extern crate wasm_bindgen;
 
+use std::f64::consts::PI;
 use std::{collections::HashMap, sync::Mutex};
 
 use log::{info, Level};
@@ -34,9 +35,15 @@ impl ColorRule {
     }
 }
 
+#[derive(Serialize, Deserialize, Clone, Debug)]
+struct ColorConfig {
+    total: i32,
+    size: f64,
+}
+
 #[derive(Debug)]
 struct RuleConfiguration {
-    colors: HashMap<String, i32>,
+    colors: HashMap<String, ColorConfig>,
     rules: Vec<ColorRule>,
 }
 
@@ -46,6 +53,7 @@ struct Atom {
     y: f64,
     vx: f64,
     vy: f64,
+    size: f64,
     color: String,
 }
 
@@ -53,6 +61,7 @@ struct Atom {
 struct GlobalState {
     atoms: Option<HashMap<String, Vec<Atom>>>,
     canvas_size: f64,
+    random_padding: f64,
     rendering: bool,
     configuration: Option<RuleConfiguration>,
 }
@@ -61,12 +70,13 @@ static mut STATES: Mutex<GlobalState> = Mutex::new(GlobalState {
     atoms: None,
     rendering: false,
     canvas_size: 0f64,
+    random_padding: 40f64,
     configuration: None,
 });
 
 #[wasm_bindgen]
 pub fn main(cv_size: f64) {
-    console_log::init_with_level(Level::Debug).unwrap();
+    // console_log::init_with_level(Level::Debug).unwrap();
     unsafe {
         let mut crr_state = STATES.get_mut().unwrap();
         crr_state.atoms = Some(HashMap::new());
@@ -77,36 +87,37 @@ pub fn main(cv_size: f64) {
 #[wasm_bindgen]
 pub fn set_render(status: bool) {
     unsafe {
-        if STATES.get_mut().unwrap().rendering && !status {
-            STATES.get_mut().unwrap().rendering = status
-        } else if !STATES.get_mut().unwrap().rendering && status {
-            STATES.get_mut().unwrap().rendering = status;
-            //TODO: render()
+        let mut state = STATES.get_mut().unwrap();
+        if state.rendering && !status {
+            state.rendering = status
+        } else if !state.rendering && status {
+            state.rendering = status;
         }
-        info!("Render setted: {:?}", STATES.get_mut().unwrap());
+        info!("Render setted: {:?}", state);
     }
 }
 
 fn random(size: f64, padding: f64) -> f64 {
     let seed: f64 = rand::thread_rng().gen();
-    seed * size - 100f64 + padding
+    seed * size + padding * (1f64 - 2f64 * seed)
 }
 
 #[wasm_bindgen]
 pub fn set_rule(totals: &JsValue, rules: &JsValue) {
     unsafe {
         let mut crr_state = STATES.get_mut().unwrap();
-        let config: HashMap<String, i32> = totals.into_serde().unwrap();
+        let config: HashMap<String, ColorConfig> = totals.into_serde().unwrap();
         let mut initial_atom: HashMap<String, Vec<Atom>> = HashMap::new();
         let size = crr_state.canvas_size;
 
-        for (name, &total) in &config {
+        for (name, color_conf) in &config {
             // initial_atom.insert(k, v);
             let mut atoms: Vec<Atom> = vec![];
-            for _ in 0..total {
+            for _ in 0..color_conf.total {
                 atoms.push(Atom {
                     x: random(size, 40f64),
                     y: random(size, 40f64),
+                    size: color_conf.size,
                     vx: 0f64,
                     vy: 0f64,
                     color: name.clone(),
@@ -130,7 +141,13 @@ pub fn set_rule(totals: &JsValue, rules: &JsValue) {
     }
 }
 
-fn rule_calculator(in1: Vec<Atom>, in2: Vec<Atom>, g: f64, size: f64) -> Vec<Atom> {
+fn rule_calculator(
+    in1: Vec<Atom>,
+    in2: Vec<Atom>,
+    g: f64,
+    cv_size: f64,
+    point_size: f64,
+) -> Vec<Atom> {
     let mut atoms1: Vec<Atom> = in1;
     let atoms2: Vec<Atom> = in2;
 
@@ -154,19 +171,19 @@ fn rule_calculator(in1: Vec<Atom>, in2: Vec<Atom>, g: f64, size: f64) -> Vec<Ato
         a.x += a.vx;
         a.y += a.vy;
 
-        if a.x <= 0f64 || a.x >= size {
+        if a.x <= 0f64 || a.x >= cv_size {
             if a.x <= 0f64 {
                 a.x = 0f64
             } else {
-                a.x = size
+                a.x = cv_size - point_size
             }
             a.vx = a.vx * -1f64;
         }
-        if a.y <= 0f64 || a.y >= size {
+        if a.y <= 0f64 || a.y >= cv_size {
             if a.y <= 0f64 {
                 a.y = 0f64
             } else {
-                a.y = size
+                a.y = cv_size - point_size
             }
             a.vy = a.vy * -1f64;
         }
@@ -179,14 +196,23 @@ pub fn start_render() {
     unsafe {
         let crr_state = STATES.get_mut().unwrap();
         let atoms = crr_state.atoms.clone().unwrap();
-        let rules = &crr_state.configuration.as_ref().unwrap().rules;
+        let configuration = &crr_state.configuration.as_ref().unwrap();
+        let rules = &configuration.rules;
+        let colors = &configuration.colors;
         let size = crr_state.canvas_size;
 
         if crr_state.rendering {
             for rule in rules {
                 let atom_a = atoms.get(&rule.color_a).unwrap();
+                let atom_a_conf = colors.get(&rule.color_a).unwrap();
                 let atom_b = atoms.get(&rule.color_b).unwrap();
-                let output = rule_calculator(atom_a.clone(), atom_b.clone(), rule.weight, size);
+                let output = rule_calculator(
+                    atom_a.clone(),
+                    atom_b.clone(),
+                    rule.weight,
+                    size,
+                    atom_a_conf.size,
+                );
                 crr_state
                     .atoms
                     .as_mut()
@@ -223,11 +249,16 @@ pub fn render_canvas() {
         let configuration = crr_state.configuration.as_ref().unwrap();
         let atoms = crr_state.atoms.as_ref().unwrap();
 
-        for (name, _) in &configuration.colors {
+        for (name, conf) in &configuration.colors {
             let color_atoms = atoms.get(name).unwrap();
             for atom in color_atoms {
+                context.begin_path();
+                context
+                    .arc(atom.x, atom.y, conf.size / 2f64, 0f64, 2f64 * PI)
+                    .unwrap();
                 context.set_fill_style(&JsValue::from(name));
-                context.fill_rect(atom.x, atom.y, 5f64, 5f64);
+                context.fill();
+                context.close_path();
             }
         }
     }

@@ -1,6 +1,7 @@
 import "@styles/globals.scss";
 
 import { MainLayout } from "@layouts/MainLayout";
+import { ThemeProvider } from "@material-tailwind/react";
 import type { AppProps } from "next/app";
 
 /**
@@ -15,7 +16,11 @@ function MyApp({ Component, pageProps }: AppProps) {
 
   const PageContent = Component as IPageComponent;
 
-  return <MainLayout>{getLayout(<PageContent {...pageProps} />)}</MainLayout>;
+  return (
+    <ThemeProvider>
+      <MainLayout>{getLayout(<PageContent {...pageProps} />)}</MainLayout>
+    </ThemeProvider>
+  );
 }
 
 export default MyApp;
