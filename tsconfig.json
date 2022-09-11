@@ -30,7 +30,8 @@
       "@hooks/*": ["hooks/*"],
       "@types/*": ["types/*"],
       "@states/*": ["states/*"],
-      "@styles/*": ["styles/*"]
+      "@styles/*": ["styles/*"],
+      "@wasm": ["wasm/pkg"]
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx"],
