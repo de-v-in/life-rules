@@ -9,7 +9,14 @@ module.exports = withMT({
     "./components/**/*.{js,ts,jsx,tsx}",
   ],
   theme: {
-    extend: {},
+    extend: {
+      fontSize: { xxs: ".8rem" },
+      boxShadow: {
+        "inner-md": "inset 0px 0px 4px #00000020",
+        "inner-xl": "inset 0px 0px 8px #00000020",
+        "inner-2xl": "inset 0px 0px 16px #00000040",
+      },
+    },
   },
   plugins: [],
 });

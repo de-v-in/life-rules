@@ -1,103 +1,137 @@
-import Tabs, {
-  Tab,
-  TabPanel,
-  TabsBody,
-  TabsHeader,
-} from "@material-tailwind/react/components/Tabs";
+import { FPSController } from "@components/FPSController";
+import IconButton from "@material-tailwind/react/components/IconButton";
+import TeamLogo from "@public/team.png";
+import { useBuilderStore } from "@states/builder";
 import { RuleBuilder } from "@utils/builder";
 import { cx } from "@utils/tools";
+import Image from "next/image";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-const FPS_RPOFILE = [1, 5, 10, 30, 60, -1, 0];
+import { ColorConfiguration } from "./ColorConfiguration";
+import { RuleConfiguration } from "./RuleConfiguration";
 
 export const AppScreen: IComponent = () => {
-  const [speed, setSpeed] = useState<number>(30);
   const [loaded, setLoaded] = useState(false);
   const builderRef = useRef<RuleBuilder | null>(null);
-  const maxRef = useRef(false);
+  const { colors, rules, getWASMRule, changePickerStatus } = useBuilderStore();
 
-  const load = useCallback(async () => {
+  const initialBuilder = useCallback(async () => {
     const builder = new RuleBuilder(
       document.getElementById("life") as HTMLCanvasElement,
       () => {
-        builder.set_rule();
+        builder.wasmModule?.initial_configuration(colors, getWASMRule());
+        builder.wasmModule?.set_render(true);
         builderRef.current = builder;
         setLoaded(true);
       }
     );
   }, []);
 
-  useEffect(() => {
-    load();
-  }, [load]);
+  const triggerRender = useCallback(() => builderRef.current?.render(), []);
+  const showColorPicker = () => changePickerStatus(true);
+
+  const reloadCanvas = useCallback(() => {
+    builderRef.current?.wasmModule?.initial_configuration(
+      colors,
+      getWASMRule()
+    );
+  }, [colors, getWASMRule]);
+
+  const reloadRule = useCallback(() => {
+    builderRef.current?.wasmModule?.update_rule(getWASMRule());
+  }, [getWASMRule]);
 
   useEffect(() => {
-    const update = () => {
-      builderRef.current?.render();
-      if (maxRef.current) {
-        requestAnimationFrame(update);
-      }
-    };
-    let renewer: NodeJS.Timer;
+    initialBuilder();
+  }, [initialBuilder]);
 
-    if (speed === 0) {
-      maxRef.current = false;
-      return;
-    }
+  useEffect(() => {
+    // TODO: Update while rendering when it ready
+    // builderRef.current?.wasmModule?.update_colors(colors);
 
-    if (speed === -1) {
-      if (loaded) {
-        maxRef.current = true;
-        update();
-      }
-    } else {
-      maxRef.current = false;
-      renewer = setInterval(() => {
-        if (loaded) {
-          requestAnimationFrame(update);
-        }
-      }, 1000 / speed);
-    }
+    // FIX: Current we reinitial canvas when update color configs
+    reloadCanvas();
+  }, [reloadCanvas]);
 
-    return () => {
-      renewer && clearInterval(renewer);
-    };
-  }, [loaded, speed]);
+  useEffect(() => {
+    reloadRule();
+  }, [rules]);
 
   return (
-    <div
-      className={cx(
-        "bg-black w-screen h-screen flex justify-center items-center"
-      )}
-    >
-      <div className="absolute top-1 right-1 flex flex-row text-white items-center gap-2">
-        <Tabs id="custom-animation" value={speed}>
-          <TabsHeader className="rounded-none bg-transparent">
-            <div className="h-auto flex justify-center items-center px-2 bg-white text-gray-800 rounded mr-2">
-              <span className="text-xs font-bold">FPS</span>
-            </div>
-            {FPS_RPOFILE.map((label) => (
-              <Tab
-                key={label}
-                value={label}
-                className={cx("px-2 text-xs text-white", {
-                  "text-green-500 font-bold": label === speed,
-                })}
-                onClick={() => setSpeed(label)}
+    <div className="flex flex-row h-full bg-black">
+      <div style={{ minWidth: 400 }} className="h-full flex flex-col gap-2 p-2">
+        <FPSController
+          enable={loaded}
+          frameRenderFn={triggerRender}
+          reloadFn={reloadCanvas}
+        />
+        <div className="w-full h-1/3 border border-blue-900 flex flex-col">
+          <div className="bg-blue-900 p-1 flex justify-center items-center">
+            <p className="text-xs text-white text-source flex-auto">
+              COLOR CONFIGURATIONS
+            </p>
+            <IconButton
+              color="white"
+              size="sm"
+              onClick={showColorPicker}
+              style={{ height: 18, width: 18 }}
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                strokeWidth="1.5"
+                stroke="white"
+                className="w-4 h-4"
               >
-                {label === 0 ? (
-                  <span className="text-orange-500">PAUSE</span>
-                ) : label === -1 ? (
-                  "MAX"
-                ) : (
-                  label
-                )}
-              </Tab>
-            ))}
-          </TabsHeader>
-        </Tabs>
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M12 4.5v15m7.5-7.5h-15"
+                />
+              </svg>
+            </IconButton>
+          </div>
+          <ColorConfiguration />
+        </div>
+        <div className="w-full flex-auto border border-blue-900 flex flex-col">
+          <div className="bg-blue-900 p-1">
+            <p className="text-xs text-white text-source">
+              RULE CONFIGURATIONS
+            </p>
+          </div>
+          <RuleConfiguration />
+        </div>
       </div>
-      <canvas id="life" width="600" height="600"></canvas>
+      <div
+        className={cx(
+          "w-screen h-screen flex justify-center items-center relative"
+        )}
+      >
+        <div className="absolute top-2 left-2"></div>
+        <canvas
+          id="life"
+          width={600}
+          height={600}
+          style={{
+            width: "90vh",
+            height: "90vh",
+          }}
+          className="border border-gray-800"
+        ></canvas>
+        <div className="absolute bottom-3 right-3">
+          <div className="relative">
+            <Image
+              src={TeamLogo}
+              alt="team"
+              layout="fixed"
+              width={96}
+              height={32}
+              objectFit="contain"
+            />
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

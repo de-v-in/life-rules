@@ -103,7 +103,7 @@ fn random(size: f64, padding: f64) -> f64 {
 }
 
 #[wasm_bindgen]
-pub fn set_rule(totals: &JsValue, rules: &JsValue) {
+pub fn initial_configuration(totals: &JsValue, rules: &JsValue) {
     unsafe {
         let mut crr_state = STATES.get_mut().unwrap();
         let config: HashMap<String, ColorConfig> = totals.into_serde().unwrap();
@@ -138,6 +138,54 @@ pub fn set_rule(totals: &JsValue, rules: &JsValue) {
         crr_state.atoms = Some(initial_atom);
 
         info!("Rule setted: {:?}", crr_state);
+    }
+}
+
+#[wasm_bindgen]
+pub fn update_rule(rules: &JsValue) {
+    unsafe {
+        let crr_state = STATES.get_mut().unwrap();
+        let rules: Vec<Vec<String>> = rules.into_serde().unwrap();
+        let rule_converted: Vec<ColorRule> =
+            rules.into_iter().map(|x| ColorRule::conver(x)).collect();
+        crr_state.configuration.as_mut().unwrap().rules = rule_converted;
+    }
+}
+
+#[wasm_bindgen]
+// TODO: Update atoms when rendering, current it broken
+pub fn update_colors(config: &JsValue) {
+    unsafe {
+        let crr_state = STATES.get_mut().unwrap();
+        let config: HashMap<String, ColorConfig> = config.into_serde().unwrap();
+        let mut initial_atom: HashMap<String, Vec<Atom>> = HashMap::new();
+        let current_atoms = crr_state.atoms.as_ref();
+        let size = crr_state.canvas_size;
+
+        for (name, color_conf) in &config {
+            let mut atoms: Vec<Atom> = current_atoms.unwrap().get(&name.clone()).unwrap().to_vec();
+            if atoms.len() as i32 > color_conf.total {
+                let size = color_conf.total as usize;
+                atoms = atoms[0..size].to_vec();
+            } else {
+                for _ in 0..(color_conf.total - atoms.len() as i32) {
+                    atoms.push(Atom {
+                        x: random(size, 40f64),
+                        y: random(size, 40f64),
+                        size: color_conf.size,
+                        vx: 0f64,
+                        vy: 0f64,
+                        color: name.clone(),
+                    })
+                }
+            }
+            for i in 0..atoms.len() {
+                atoms[i].size = color_conf.size.clone()
+            }
+            initial_atom.insert(name.clone(), atoms);
+        }
+        crr_state.configuration.as_mut().unwrap().colors = config;
+        crr_state.atoms = Some(initial_atom);
     }
 }
 
@@ -258,6 +306,10 @@ pub fn render_canvas() {
                     .unwrap();
                 context.set_fill_style(&JsValue::from(name));
                 context.fill();
+                context.set_shadow_color(name);
+                context.set_shadow_blur(6f64);
+                context.set_shadow_offset_x(0f64);
+                context.set_shadow_offset_y(0f64);
                 context.close_path();
             }
         }

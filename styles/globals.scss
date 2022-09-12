@@ -1,3 +1,6 @@
+@import url("http://fonts.cdnfonts.com/css/minecraft-4");
+@import url("https://fonts.googleapis.com/css2?family=Source+Code+Pro:wght@300;700&family=Source+Sans+Pro&display=swap");
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -12,6 +15,7 @@ body {
   > div {
     height: 100%;
   }
+  overflow: hidden;
 }
 
 a {
@@ -21,4 +25,47 @@ a {
 
 * {
   box-sizing: border-box;
+}
+
+.text-craft {
+  font-family: "Minecraft", sans-serif;
+}
+
+.text-source {
+  font-family: "Source Code Pro", monospace;
+  font-family: "Source Sans Pro", sans-serif;
+}
+
+label[for^="rc-editable-input-"] {
+  color: white !important;
+  font-family: "Minecraft", sans-serif;
+}
+input[id^="rc-editable-input-"] {
+  width: 100% !important;
+  color: white !important;
+  background: black !important;
+  box-shadow: none !important;
+  border: 1px solid #0a3880 !important;
+}
+.flexbox-fix {
+  border-top-color: #0a3880 !important;
+}
+
+::-webkit-scrollbar {
+  width: 5px;
+}
+
+/* Track */
+::-webkit-scrollbar-track {
+  background: #000;
+}
+
+/* Handle */
+::-webkit-scrollbar-thumb {
+  background: #0a3880;
+}
+
+/* Handle on hover */
+::-webkit-scrollbar-thumb:hover {
+  background: #0a3880;
 }
