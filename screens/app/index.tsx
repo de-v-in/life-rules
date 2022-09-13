@@ -21,6 +21,7 @@ export const AppScreen: IComponent = () => {
       () => {
         builder.wasmModule?.initial_configuration(colors, getWASMRule());
         builder.wasmModule?.set_render(true);
+        builder.wasmModule?.set_speed(0.8);
         builderRef.current = builder;
         setLoaded(true);
       }

@@ -61,6 +61,7 @@ struct Atom {
 struct GlobalState {
     atoms: Option<HashMap<String, Vec<Atom>>>,
     canvas_size: f64,
+    speed: f64,
     random_padding: f64,
     rendering: bool,
     configuration: Option<RuleConfiguration>,
@@ -69,6 +70,7 @@ struct GlobalState {
 static mut STATES: Mutex<GlobalState> = Mutex::new(GlobalState {
     atoms: None,
     rendering: false,
+    speed: 1f64,
     canvas_size: 0f64,
     random_padding: 40f64,
     configuration: None,
@@ -100,6 +102,14 @@ pub fn set_render(status: bool) {
 fn random(size: f64, padding: f64) -> f64 {
     let seed: f64 = rand::thread_rng().gen();
     seed * size + padding * (1f64 - 2f64 * seed)
+}
+
+#[wasm_bindgen]
+pub fn set_speed(n_speed: f64) {
+    unsafe {
+        let mut crr_state = STATES.get_mut().unwrap();
+        crr_state.speed = n_speed
+    }
 }
 
 #[wasm_bindgen]
@@ -193,6 +203,7 @@ fn rule_calculator(
     in1: Vec<Atom>,
     in2: Vec<Atom>,
     g: f64,
+    speed: f64,
     cv_size: f64,
     point_size: f64,
 ) -> Vec<Atom> {
@@ -207,21 +218,21 @@ fn rule_calculator(
             let dx = a.x - j.x;
             let dy = a.y - j.y;
             let d = (dx * dx + dy * dy).sqrt();
-            if d > 0f64 && d < 80f64 {
+            if d > 0f64 && d < 80f64 * speed {
                 let f = g / d;
                 fx += f * dx;
                 fy += f * dy;
             }
         }
 
-        a.vx = (a.vx + fx) * 0.5;
-        a.vy = (a.vy + fy) * 0.5;
+        a.vx = (a.vx + fx) * 0.5 * speed;
+        a.vy = (a.vy + fy) * 0.5 * speed;
         a.x += a.vx;
         a.y += a.vy;
 
         if a.x <= 0f64 || a.x >= cv_size {
             if a.x <= 0f64 {
-                a.x = 0f64
+                a.x = 0f64 + point_size
             } else {
                 a.x = cv_size - point_size
             }
@@ -229,7 +240,7 @@ fn rule_calculator(
         }
         if a.y <= 0f64 || a.y >= cv_size {
             if a.y <= 0f64 {
-                a.y = 0f64
+                a.y = 0f64 + point_size
             } else {
                 a.y = cv_size - point_size
             }
@@ -243,7 +254,6 @@ fn rule_calculator(
 pub fn start_render() {
     unsafe {
         let crr_state = STATES.get_mut().unwrap();
-        let atoms = crr_state.atoms.clone().unwrap();
         let configuration = &crr_state.configuration.as_ref().unwrap();
         let rules = &configuration.rules;
         let colors = &configuration.colors;
@@ -251,6 +261,7 @@ pub fn start_render() {
 
         if crr_state.rendering {
             for rule in rules {
+                let atoms = crr_state.atoms.clone().unwrap();
                 let atom_a = atoms.get(&rule.color_a).unwrap();
                 let atom_a_conf = colors.get(&rule.color_a).unwrap();
                 let atom_b = atoms.get(&rule.color_b).unwrap();
@@ -258,6 +269,7 @@ pub fn start_render() {
                     atom_a.clone(),
                     atom_b.clone(),
                     rule.weight,
+                    crr_state.speed,
                     size,
                     atom_a_conf.size,
                 );

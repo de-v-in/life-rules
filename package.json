@@ -8,7 +8,7 @@
     "start": "next start",
     "prepare": "husky install",
     "lint": "eslint . --ext .js,.jsx,.ts,.tsx --fix",
-    "build:wasm": "cd wasm && wasm-pack build"
+    "build:wasm": "cd wasm && wasm-pack build && rm -r ../public/wasm && mv pkg ../public/wasm && rm ../public/wasm/.gitignore"
   },
   "dependencies": {
     "@material-tailwind/react": "^1.2.4",

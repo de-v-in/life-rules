@@ -31,7 +31,7 @@
       "@types/*": ["types/*"],
       "@states/*": ["states/*"],
       "@styles/*": ["styles/*"],
-      "@wasm": ["wasm/pkg"]
+      "@wasm": ["public/wasm"]
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx"],
