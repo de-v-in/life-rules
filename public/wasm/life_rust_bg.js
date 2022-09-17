@@ -191,26 +191,6 @@ function debugString(val) {
   // TODO we could test for more things here, like `Set`s and `Map`s.
   return className;
 }
-/**
- * @param {number} cv_size
- */
-export function main(cv_size) {
-  wasm.main(cv_size);
-}
-
-/**
- * @param {boolean} status
- */
-export function set_render(status) {
-  wasm.set_render(status);
-}
-
-/**
- * @param {number} n_speed
- */
-export function set_speed(n_speed) {
-  wasm.set_speed(n_speed);
-}
 
 let stack_pointer = 32;
 
@@ -220,39 +200,26 @@ function addBorrowedObject(obj) {
   return stack_pointer;
 }
 /**
- * @param {any} totals
+ * @param {string} canvas_id
+ * @param {any} colors
  * @param {any} rules
  */
-export function initial_configuration(totals, rules) {
+export function initialize(canvas_id, colors, rules) {
   try {
-    wasm.initial_configuration(
-      addBorrowedObject(totals),
+    const ptr0 = passStringToWasm0(
+      canvas_id,
+      wasm.__wbindgen_malloc,
+      wasm.__wbindgen_realloc
+    );
+    const len0 = WASM_VECTOR_LEN;
+    wasm.initialize(
+      ptr0,
+      len0,
+      addBorrowedObject(colors),
       addBorrowedObject(rules)
     );
   } finally {
     heap[stack_pointer++] = undefined;
-    heap[stack_pointer++] = undefined;
-  }
-}
-
-/**
- * @param {any} rules
- */
-export function update_rule(rules) {
-  try {
-    wasm.update_rule(addBorrowedObject(rules));
-  } finally {
-    heap[stack_pointer++] = undefined;
-  }
-}
-
-/**
- * @param {any} config
- */
-export function update_colors(config) {
-  try {
-    wasm.update_colors(addBorrowedObject(config));
-  } finally {
     heap[stack_pointer++] = undefined;
   }
 }
@@ -265,8 +232,21 @@ export function start_render() {
 
 /**
  */
-export function render_canvas() {
-  wasm.render_canvas();
+export function stop_render() {
+  wasm.stop_render();
+}
+
+/**
+ */
+export function next_frame() {
+  wasm.next_frame();
+}
+
+/**
+ * @param {number} speed
+ */
+export function set_speed(speed) {
+  wasm.set_speed(speed);
 }
 
 function isLikeNone(x) {
@@ -322,11 +302,42 @@ export function __wbg_getElementById_927eae2597d26692(arg0, arg1, arg2) {
   return isLikeNone(ret) ? 0 : addHeapObject(ret);
 }
 
+export function __wbg_instanceof_HtmlCanvasElement_9f56aef8c479066b(arg0) {
+  const ret = getObject(arg0) instanceof HTMLCanvasElement;
+  return ret;
+}
+
+export function __wbg_width_54a66e74169bb513(arg0) {
+  const ret = getObject(arg0).width;
+  return ret;
+}
+
+export function __wbg_height_d4607377aede83c6(arg0) {
+  const ret = getObject(arg0).height;
+  return ret;
+}
+
+export function __wbg_getContext_efe7e95b72348104() {
+  return handleError(function (arg0, arg1, arg2) {
+    const ret = getObject(arg0).getContext(getStringFromWasm0(arg1, arg2));
+    return isLikeNone(ret) ? 0 : addHeapObject(ret);
+  }, arguments);
+}
+
 export function __wbg_instanceof_CanvasRenderingContext2d_10bb8c4425aab773(
   arg0
 ) {
   const ret = getObject(arg0) instanceof CanvasRenderingContext2D;
   return ret;
+}
+
+export function __wbg_canvas_a29baa374ab1714f(arg0) {
+  const ret = getObject(arg0).canvas;
+  return isLikeNone(ret) ? 0 : addHeapObject(ret);
+}
+
+export function __wbg_setstrokeStyle_6031fd3bde25a376(arg0, arg1) {
+  getObject(arg0).strokeStyle = getObject(arg1);
 }
 
 export function __wbg_setfillStyle_73949a5c3b61798a(arg0, arg1) {
@@ -357,6 +368,10 @@ export function __wbg_fill_e5193c88834dc182(arg0) {
   getObject(arg0).fill();
 }
 
+export function __wbg_stroke_fe693002a3fc8e6a(arg0) {
+  getObject(arg0).stroke();
+}
+
 export function __wbg_arc_b54bf161e510b1a8() {
   return handleError(function (arg0, arg1, arg2, arg3, arg4, arg5) {
     getObject(arg0).arc(arg1, arg2, arg3, arg4, arg5);
@@ -371,21 +386,8 @@ export function __wbg_clearRect_53506e6d8f66e793(arg0, arg1, arg2, arg3, arg4) {
   getObject(arg0).clearRect(arg1, arg2, arg3, arg4);
 }
 
-export function __wbg_instanceof_HtmlCanvasElement_9f56aef8c479066b(arg0) {
-  const ret = getObject(arg0) instanceof HTMLCanvasElement;
-  return ret;
-}
-
-export function __wbg_width_54a66e74169bb513(arg0) {
-  const ret = getObject(arg0).width;
-  return ret;
-}
-
-export function __wbg_getContext_efe7e95b72348104() {
-  return handleError(function (arg0, arg1, arg2) {
-    const ret = getObject(arg0).getContext(getStringFromWasm0(arg1, arg2));
-    return isLikeNone(ret) ? 0 : addHeapObject(ret);
-  }, arguments);
+export function __wbg_fillRect_3b87fb719605af54(arg0, arg1, arg2, arg3, arg4) {
+  getObject(arg0).fillRect(arg1, arg2, arg3, arg4);
 }
 
 export function __wbg_newnoargs_971e9a5abe185139(arg0, arg1) {

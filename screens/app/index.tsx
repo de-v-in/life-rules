@@ -19,27 +19,30 @@ export const AppScreen: IComponent = () => {
     const builder = new RuleBuilder(
       document.getElementById("life") as HTMLCanvasElement,
       () => {
-        builder.wasmModule?.initial_configuration(colors, getWASMRule());
-        builder.wasmModule?.set_render(true);
-        builder.wasmModule?.set_speed(0.8);
+        // builder.wasmModule?.initial_configuration(colors, getWASMRule());
+        // builder.wasmModule?.set_render(true);
+        builder.wasmModule?.set_speed(1);
         builderRef.current = builder;
+        builderRef.current.wasmModule?.start_render();
         setLoaded(true);
       }
     );
   }, []);
 
-  const triggerRender = useCallback(() => builderRef.current?.render(), []);
+  const triggerRender = useCallback(() => {
+    builderRef.current?.wasmModule?.next_frame();
+  }, []);
   const showColorPicker = () => changePickerStatus(true);
 
   const reloadCanvas = useCallback(() => {
-    builderRef.current?.wasmModule?.initial_configuration(
-      colors,
-      getWASMRule()
-    );
+    // builderRef.current?.wasmModule?.initial_configuration(
+    //   colors,
+    //   getWASMRule()
+    // );
   }, [colors, getWASMRule]);
 
   const reloadRule = useCallback(() => {
-    builderRef.current?.wasmModule?.update_rule(getWASMRule());
+    // builderRef.current?.wasmModule?.update_rule(getWASMRule());
   }, [getWASMRule]);
 
   useEffect(() => {
@@ -60,7 +63,10 @@ export const AppScreen: IComponent = () => {
 
   return (
     <div className="flex flex-row h-full bg-black">
-      <div style={{ minWidth: 400 }} className="h-full flex flex-col gap-2 p-2">
+      <div
+        style={{ minWidth: 400 }}
+        className="h-full flex-col gap-2 p-2 hidden"
+      >
         <FPSController
           enable={loaded}
           frameRenderFn={triggerRender}
@@ -112,26 +118,22 @@ export const AppScreen: IComponent = () => {
         <div className="absolute top-2 left-2"></div>
         <canvas
           id="life"
-          width={600}
-          height={600}
-          style={{
-            width: "90vh",
-            height: "90vh",
-          }}
-          className="border border-gray-800"
+          width="1000px"
+          height="600px"
+          className="border border-gray-800 rounded-lg"
         ></canvas>
-        <div className="absolute bottom-3 right-3">
-          <div className="relative">
-            <Image
-              src={TeamLogo}
-              alt="team"
-              layout="fixed"
-              width={96}
-              height={32}
-              objectFit="contain"
-            />
-          </div>
-        </div>
+        {/* <div className="absolute bottom-3 right-3"> */}
+        {/*   <div className="relative"> */}
+        {/*     <Image */}
+        {/*       src={TeamLogo} */}
+        {/*       alt="team" */}
+        {/*       layout="fixed" */}
+        {/*       width={96} */}
+        {/*       height={32} */}
+        {/*       objectFit="contain" */}
+        {/*     /> */}
+        {/*   </div> */}
+        {/* </div> */}
       </div>
     </div>
   );

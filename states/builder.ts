@@ -2,7 +2,14 @@ import create from "zustand";
 
 interface IBuilderState {
   showPicker: boolean;
-  colors: { [key: string]: { total: number; size: number } };
+  colors: {
+    [key: string]: {
+      total: number;
+      size: number;
+      shape?: string;
+      blur?: number;
+    };
+  };
   rules: [string, string, number][];
   getWASMRule: () => string[][];
   addColor: (name: string) => void;
@@ -17,14 +24,14 @@ interface IBuilderState {
 const useBuilderStore = create<IBuilderState>((set, get) => ({
   showPicker: false,
   colors: {
-    yellow: { total: 300, size: 4 },
-    green: { total: 300, size: 4 },
+    "#4A90E2": { total: 300, size: 6, shape: "Dot", blur: 6 },
+    "#ffffff": { total: 300, size: 1, shape: "Square" },
   },
   rules: [
-    ["green", "green", -0.32],
-    ["green", "yellow", 0.34],
-    ["yellow", "yellow", 0.15],
-    ["yellow", "green", -0.2],
+    ["#4A90E2", "#4A90E2", -0.32],
+    ["#4A90E2", "#ffffff", 0.34],
+    ["#ffffff", "#ffffff", 0.15],
+    ["#ffffff", "#4A90E2", -0.2],
   ],
   getWASMRule: () => {
     return get()

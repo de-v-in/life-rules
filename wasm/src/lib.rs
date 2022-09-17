@@ -3,51 +3,107 @@ mod utils;
 extern crate serde_json;
 extern crate wasm_bindgen;
 
-use std::f64::consts::PI;
-use std::{collections::HashMap, sync::Mutex};
-
-use log::{info, Level};
 use rand::prelude::*;
 use serde::{Deserialize, Serialize};
+use std::f64::consts::PI;
+use std::{collections::HashMap, sync::Mutex};
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
+use web_sys::CanvasRenderingContext2d;
 
-// When the `wee_alloc` feature is enabled, use `wee_alloc` as the global
-// allocator.
-#[cfg(feature = "wee_alloc")]
-#[global_allocator]
-static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, PartialOrd)]
+enum AtomShape {
+    Dot,
+    Square,
+    Triangle,
+}
 
-#[derive(Debug)]
-struct ColorRule {
-    color_a: String,
-    color_b: String,
+#[derive(Serialize, Deserialize, Clone, Debug)]
+struct AtomRule {
+    src: String,
+    target: String,
     weight: f64,
 }
 
-impl ColorRule {
-    fn conver(input: Vec<String>) -> ColorRule {
-        ColorRule {
-            color_a: input[0].clone(),
-            color_b: input[1].clone(),
+impl AtomRule {
+    pub fn convert(input: Vec<String>) -> AtomRule {
+        AtomRule {
+            src: input[0].clone(),
+            target: input[1].clone(),
             weight: str::parse::<f64>(&input[2]).unwrap(),
+        }
+    }
+    pub fn apply(self, src: &mut Vec<Atom>, target: Vec<Atom>, speed: f64, cv_w: f64, cv_h: f64) {
+        for atom_src in src {
+            let mut fx = 0f64;
+            let mut fy = 0f64;
+
+            for atom_target in &target {
+                let dx = atom_src.x - atom_target.x;
+                let dy = atom_src.y - atom_target.y;
+                if dx.abs() > 80f64 || dy.abs() > 80f64 {
+                    continue;
+                }
+                let d = (dx * dx + dy * dy).sqrt();
+                if d > 0f64 && d < 80f64 * speed {
+                    let f = self.weight / d;
+                    fx += f * dx;
+                    fy += f * dy;
+                }
+            }
+
+            atom_src.vx = (atom_src.vx + fx) * 0.5 * speed;
+            atom_src.vy = (atom_src.vy + fy) * 0.5 * speed;
+            atom_src.x += atom_src.vx;
+            atom_src.y += atom_src.vy;
+
+            if atom_src.x <= 0f64 || atom_src.x >= cv_w {
+                if atom_src.x <= 0f64 {
+                    atom_src.x = 0f64 + atom_src.size
+                } else {
+                    atom_src.x = cv_w - atom_src.size
+                }
+                atom_src.vx *= -1f64;
+            }
+            if atom_src.y <= 0f64 || atom_src.y >= cv_h {
+                if atom_src.y <= 0f64 {
+                    atom_src.y = 0f64 + atom_src.size
+                } else {
+                    atom_src.y = cv_h - atom_src.size
+                }
+                atom_src.vy *= -1f64;
+            }
         }
     }
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
-struct ColorConfig {
+struct ColorConfiguration {
     total: i32,
     size: f64,
-}
-
-#[derive(Debug)]
-struct RuleConfiguration {
-    colors: HashMap<String, ColorConfig>,
-    rules: Vec<ColorRule>,
+    shape: Option<AtomShape>,
+    blur: Option<f64>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
+struct Configuration {
+    colors: Option<HashMap<String, ColorConfiguration>>,
+    rules: Vec<AtomRule>,
+    speed: Option<f64>,
+    padding: Option<f64>,
+}
+
+impl Configuration {
+    pub fn raw_into_rules(raw: &JsValue) -> Vec<AtomRule> {
+        let raw: Vec<Vec<String>> = raw.into_serde().unwrap();
+        raw.into_iter().map(AtomRule::convert).collect()
+    }
+    pub fn raw_into_colors(raw: &JsValue) -> HashMap<String, ColorConfiguration> {
+        raw.into_serde().unwrap()
+    }
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, PartialOrd)]
 struct Atom {
     x: f64,
     y: f64,
@@ -55,248 +111,270 @@ struct Atom {
     vy: f64,
     size: f64,
     color: String,
+    shape: Option<AtomShape>,
+    blur: Option<f64>,
 }
 
-#[derive(Debug)]
-struct GlobalState {
-    atoms: Option<HashMap<String, Vec<Atom>>>,
-    canvas_size: f64,
-    speed: f64,
-    random_padding: f64,
-    rendering: bool,
-    configuration: Option<RuleConfiguration>,
-}
-
-static mut STATES: Mutex<GlobalState> = Mutex::new(GlobalState {
-    atoms: None,
-    rendering: false,
-    speed: 1f64,
-    canvas_size: 0f64,
-    random_padding: 40f64,
-    configuration: None,
-});
-
-#[wasm_bindgen]
-pub fn main(cv_size: f64) {
-    // console_log::init_with_level(Level::Debug).unwrap();
-    unsafe {
-        let mut crr_state = STATES.get_mut().unwrap();
-        crr_state.atoms = Some(HashMap::new());
-        crr_state.canvas_size = cv_size
+impl Atom {
+    fn random_point(range: f64, padding: f64) -> f64 {
+        let seed: f64 = rand::thread_rng().gen();
+        seed * range + padding * (1f64 - 2f64 * seed)
     }
-}
 
-#[wasm_bindgen]
-pub fn set_render(status: bool) {
-    unsafe {
-        let mut state = STATES.get_mut().unwrap();
-        if state.rendering && !status {
-            state.rendering = status
-        } else if !state.rendering && status {
-            state.rendering = status;
-        }
-        info!("Render setted: {:?}", state);
-    }
-}
-
-fn random(size: f64, padding: f64) -> f64 {
-    let seed: f64 = rand::thread_rng().gen();
-    seed * size + padding * (1f64 - 2f64 * seed)
-}
-
-#[wasm_bindgen]
-pub fn set_speed(n_speed: f64) {
-    unsafe {
-        let mut crr_state = STATES.get_mut().unwrap();
-        crr_state.speed = n_speed
-    }
-}
-
-#[wasm_bindgen]
-pub fn initial_configuration(totals: &JsValue, rules: &JsValue) {
-    unsafe {
-        let mut crr_state = STATES.get_mut().unwrap();
-        let config: HashMap<String, ColorConfig> = totals.into_serde().unwrap();
-        let mut initial_atom: HashMap<String, Vec<Atom>> = HashMap::new();
-        let size = crr_state.canvas_size;
-
-        for (name, color_conf) in &config {
-            // initial_atom.insert(k, v);
-            let mut atoms: Vec<Atom> = vec![];
-            for _ in 0..color_conf.total {
-                atoms.push(Atom {
-                    x: random(size, 40f64),
-                    y: random(size, 40f64),
-                    size: color_conf.size,
-                    vx: 0f64,
-                    vy: 0f64,
-                    color: name.clone(),
-                })
-            }
-            initial_atom.insert(name.clone(), atoms);
-        }
-
-        let rules: Vec<Vec<String>> = rules.into_serde().unwrap();
-
-        let rule_converted: Vec<ColorRule> =
-            rules.into_iter().map(|x| ColorRule::conver(x)).collect();
-
-        crr_state.configuration = Some(RuleConfiguration {
-            colors: config,
-            rules: rule_converted,
-        });
-        crr_state.atoms = Some(initial_atom);
-
-        info!("Rule setted: {:?}", crr_state);
-    }
-}
-
-#[wasm_bindgen]
-pub fn update_rule(rules: &JsValue) {
-    unsafe {
-        let crr_state = STATES.get_mut().unwrap();
-        let rules: Vec<Vec<String>> = rules.into_serde().unwrap();
-        let rule_converted: Vec<ColorRule> =
-            rules.into_iter().map(|x| ColorRule::conver(x)).collect();
-        crr_state.configuration.as_mut().unwrap().rules = rule_converted;
-    }
-}
-
-#[wasm_bindgen]
-// TODO: Update atoms when rendering, current it broken
-pub fn update_colors(config: &JsValue) {
-    unsafe {
-        let crr_state = STATES.get_mut().unwrap();
-        let config: HashMap<String, ColorConfig> = config.into_serde().unwrap();
-        let mut initial_atom: HashMap<String, Vec<Atom>> = HashMap::new();
-        let current_atoms = crr_state.atoms.as_ref();
-        let size = crr_state.canvas_size;
-
-        for (name, color_conf) in &config {
-            let mut atoms: Vec<Atom> = current_atoms.unwrap().get(&name.clone()).unwrap().to_vec();
-            if atoms.len() as i32 > color_conf.total {
-                let size = color_conf.total as usize;
-                atoms = atoms[0..size].to_vec();
-            } else {
-                for _ in 0..(color_conf.total - atoms.len() as i32) {
-                    atoms.push(Atom {
-                        x: random(size, 40f64),
-                        y: random(size, 40f64),
-                        size: color_conf.size,
-                        vx: 0f64,
-                        vy: 0f64,
-                        color: name.clone(),
-                    })
-                }
-            }
-            for i in 0..atoms.len() {
-                atoms[i].size = color_conf.size.clone()
-            }
-            initial_atom.insert(name.clone(), atoms);
-        }
-        crr_state.configuration.as_mut().unwrap().colors = config;
-        crr_state.atoms = Some(initial_atom);
-    }
-}
-
-fn rule_calculator(
-    in1: Vec<Atom>,
-    in2: Vec<Atom>,
-    g: f64,
-    speed: f64,
-    cv_size: f64,
-    point_size: f64,
-) -> Vec<Atom> {
-    let mut atoms1: Vec<Atom> = in1;
-    let atoms2: Vec<Atom> = in2;
-
-    for a in &mut atoms1 {
+    // FIXME: This hurt performance so much, need to know how ?
+    fn next_state_by_rule(
+        &mut self,
+        target: Vec<Atom>,
+        weight: f64,
+        speed: f64,
+        max_x: f64,
+        max_y: f64,
+    ) {
         let mut fx = 0f64;
         let mut fy = 0f64;
 
-        for j in &atoms2 {
-            let dx = a.x - j.x;
-            let dy = a.y - j.y;
+        for atom_target in &target {
+            let dx = self.x - atom_target.x;
+            let dy = self.y - atom_target.y;
+            if dx.abs() > 80f64 || dy.abs() > 80f64 {
+                continue;
+            }
             let d = (dx * dx + dy * dy).sqrt();
             if d > 0f64 && d < 80f64 * speed {
-                let f = g / d;
+                let f = weight / d;
                 fx += f * dx;
                 fy += f * dy;
             }
         }
 
-        a.vx = (a.vx + fx) * 0.5 * speed;
-        a.vy = (a.vy + fy) * 0.5 * speed;
-        a.x += a.vx;
-        a.y += a.vy;
+        self.vx = (self.vx + fx) * 0.5 * speed;
+        self.vy = (self.vy + fy) * 0.5 * speed;
+        self.x += self.vx;
+        self.y += self.vy;
 
-        if a.x <= 0f64 || a.x >= cv_size {
-            if a.x <= 0f64 {
-                a.x = 0f64 + point_size
+        if self.x <= 0f64 || self.x >= max_x {
+            if self.x <= 0f64 {
+                self.x = 0f64 + self.size
             } else {
-                a.x = cv_size - point_size
+                self.x = max_x - self.size
             }
-            a.vx = a.vx * -1f64;
+            self.vx *= -1f64;
         }
-        if a.y <= 0f64 || a.y >= cv_size {
-            if a.y <= 0f64 {
-                a.y = 0f64 + point_size
+        if self.y <= 0f64 || self.y >= max_y {
+            if self.y <= 0f64 {
+                self.y = 0f64 + self.size
             } else {
-                a.y = cv_size - point_size
+                self.y = max_y - self.size
             }
-            a.vy = a.vy * -1f64;
+            self.vy *= -1f64;
         }
     }
-    atoms1
+
+    pub fn born(
+        max_w: f64,
+        max_h: f64,
+        padding: f64,
+        size: f64,
+        color: String,
+        shape: Option<AtomShape>,
+        blur: Option<f64>,
+    ) -> Atom {
+        Atom {
+            x: Self::random_point(max_w, padding),
+            y: Self::random_point(max_h, padding),
+            vx: 0f64,
+            vy: 0f64,
+            size,
+            color,
+            shape,
+            blur,
+        }
+    }
+
+    fn draw(&self, ctx: &CanvasRenderingContext2d) {
+        ctx.begin_path();
+        let draw_square_default = || {
+            ctx.set_fill_style(&JsValue::from(self.color.clone()));
+            ctx.fill_rect(self.x, self.y, self.size, self.size);
+
+            // Draw outline
+            let mut lower_color = self.color.clone();
+            let outline_size: f64 = self.size + 2f64;
+            lower_color.push_str("99");
+            ctx.set_fill_style(&JsValue::from(lower_color));
+            ctx.fill_rect(self.x - 1f64, self.y - 1f64, outline_size, outline_size);
+        };
+        match self.shape {
+            Some(AtomShape::Dot) => {
+                ctx.arc(self.x, self.y, self.size / 2f64, 0f64, 2f64 * PI)
+                    .unwrap();
+                ctx.set_fill_style(&JsValue::from(self.color.clone()));
+                ctx.fill();
+
+                // Draw outline
+                let mut lower_color = self.color.clone();
+                let outline_size: f64 = (self.size / 2f64) + 2f64;
+                lower_color.push_str("99");
+
+                ctx.arc(self.x, self.y, outline_size, 0f64, 2f64 * PI)
+                    .unwrap();
+                ctx.set_fill_style(&JsValue::from(lower_color));
+                ctx.fill();
+                ctx.set_stroke_style(&JsValue::from(self.color.clone()));
+                ctx.stroke();
+            }
+            Some(_) => draw_square_default(),
+            None => draw_square_default(),
+        }
+        if let Some(blur_radius) = self.blur {
+            ctx.set_shadow_color(&self.color);
+            ctx.set_shadow_blur(blur_radius);
+            ctx.set_shadow_offset_y(0f64);
+            ctx.set_shadow_offset_x(0f64);
+        }
+        ctx.close_path()
+    }
 }
 
-#[wasm_bindgen]
-pub fn start_render() {
-    unsafe {
-        let crr_state = STATES.get_mut().unwrap();
-        let configuration = &crr_state.configuration.as_ref().unwrap();
+struct RenderEngine {
+    tick: u32,
+    rendering: bool,
+    atoms: Option<HashMap<String, Vec<Atom>>>,
+    ctx: Option<CanvasRenderingContext2d>,
+}
+
+impl RenderEngine {
+    pub fn render(&self) {
+        if let Some(ctx) = &self.ctx {
+            // Clear canvas to render new frame
+            ctx.clear_rect(
+                0f64,
+                0f64,
+                ctx.canvas().unwrap().width().into(),
+                ctx.canvas().unwrap().height().into(),
+            );
+            if let Some(atoms) = &self.atoms {
+                atoms.iter().for_each(|(_, color_atoms)| {
+                    for atom in color_atoms {
+                        atom.draw(ctx)
+                    }
+                });
+            }
+        }
+    }
+    pub fn set_rendering(&mut self, status: bool) -> &mut Self {
+        self.rendering = status;
+        self
+    }
+
+    pub fn render_piline(&self) {
+        if !self.rendering {
+            return;
+        }
+        self.render();
+
+        // Sleep before next frame
+        // wasm_thread::sleep(Duration::from_millis(100));
+        // self.render_piline()
+    }
+}
+
+struct LifeManager {
+    render_engine: RenderEngine,
+    configuration: Configuration,
+}
+
+impl LifeManager {
+    fn update_engine_state(&mut self) {
+        let engine = &mut self.render_engine;
+        let canvas = engine.ctx.as_ref().unwrap().canvas().unwrap();
+        let cv_w = canvas.width() as f64;
+        let cv_h = canvas.height() as f64;
+        let configuration = &self.configuration;
+        let speed = configuration.speed.unwrap_or(1f64);
         let rules = &configuration.rules;
-        let colors = &configuration.colors;
-        let size = crr_state.canvas_size;
 
-        if crr_state.rendering {
-            for rule in rules {
-                let atoms = crr_state.atoms.clone().unwrap();
-                let atom_a = atoms.get(&rule.color_a).unwrap();
-                let atom_a_conf = colors.get(&rule.color_a).unwrap();
-                let atom_b = atoms.get(&rule.color_b).unwrap();
-                let output = rule_calculator(
-                    atom_a.clone(),
-                    atom_b.clone(),
-                    rule.weight,
-                    crr_state.speed,
-                    size,
-                    atom_a_conf.size,
-                );
-                crr_state
-                    .atoms
-                    .as_mut()
-                    .unwrap()
-                    .insert(rule.color_a.clone(), output);
+        for rule in rules {
+            if let Some(atoms) = &mut engine.atoms {
+                let atom_b = atoms.get(&rule.target).unwrap().clone();
+                atoms.iter_mut().for_each(|(_, color_atoms)| {
+                    color_atoms.iter_mut().for_each(|src_atom| {
+                        src_atom.next_state_by_rule(atom_b.to_vec(), rule.weight, speed, cv_w, cv_h)
+                    });
+                });
             }
-            render_canvas();
         }
+    }
+    pub fn generate_environment(
+        &mut self,
+        colors: HashMap<String, ColorConfiguration>,
+        rules: Vec<AtomRule>,
+    ) {
+        let engine = &mut self.render_engine;
+        let canvas = &engine.ctx.as_ref().unwrap().canvas().unwrap();
+        self.configuration.colors = Some(colors);
+        self.configuration.rules = rules;
+
+        let mut atoms: HashMap<String, Vec<Atom>> = HashMap::new();
+
+        if let Some(colors) = &self.configuration.colors {
+            for (color, conf) in colors {
+                for _ in 0..conf.total {
+                    if atoms.contains_key(color) {
+                        atoms.get_mut(color).unwrap().push(Atom::born(
+                            canvas.width() as f64,
+                            canvas.height() as f64,
+                            0f64,
+                            conf.size,
+                            color.to_string(),
+                            conf.shape.clone(),
+                            conf.blur,
+                        ))
+                    } else {
+                        let color_vec: Vec<Atom> = vec![Atom::born(
+                            canvas.width() as f64,
+                            canvas.height() as f64,
+                            0f64,
+                            conf.size,
+                            color.to_string(),
+                            conf.shape.clone(),
+                            conf.blur,
+                        )];
+                        atoms.insert(color.clone(), color_vec);
+                    }
+                }
+            }
+        }
+
+        engine.atoms = Some(atoms);
     }
 }
 
+static mut LIFE_INSTANCE: Mutex<LifeManager> = Mutex::new(LifeManager {
+    render_engine: RenderEngine {
+        tick: 64,
+        rendering: false,
+        atoms: None,
+        ctx: None,
+    },
+    configuration: Configuration {
+        colors: None,
+        rules: vec![],
+        speed: Some(1f64),
+        padding: Some(40f64),
+    },
+});
+
 #[wasm_bindgen]
-pub fn render_canvas() {
+pub fn initialize(canvas_id: String, colors: &JsValue, rules: &JsValue) {
     unsafe {
-        let crr_state = STATES.get_mut().unwrap();
+        let crr_state = LIFE_INSTANCE.get_mut().unwrap();
         let document = web_sys::window().unwrap().document().unwrap();
-        let canvas = document.get_element_by_id("life").unwrap();
+        let canvas = document.get_element_by_id(&canvas_id).unwrap();
         let canvas: web_sys::HtmlCanvasElement = canvas
             .dyn_into::<web_sys::HtmlCanvasElement>()
             .map_err(|_| ())
             .unwrap();
-        let size = canvas.width();
-
-        crr_state.canvas_size = size as f64;
 
         let context = canvas
             .get_context("2d")
@@ -305,25 +383,42 @@ pub fn render_canvas() {
             .dyn_into::<web_sys::CanvasRenderingContext2d>()
             .unwrap();
 
-        context.clear_rect(0f64, 0f64, size as f64, size as f64);
-        let configuration = crr_state.configuration.as_ref().unwrap();
-        let atoms = crr_state.atoms.as_ref().unwrap();
+        crr_state.render_engine.ctx = Some(context);
+        let colors = Configuration::raw_into_colors(colors);
+        let rules = Configuration::raw_into_rules(rules);
+        crr_state.generate_environment(colors, rules);
+    }
+}
 
-        for (name, conf) in &configuration.colors {
-            let color_atoms = atoms.get(name).unwrap();
-            for atom in color_atoms {
-                context.begin_path();
-                context
-                    .arc(atom.x, atom.y, conf.size / 2f64, 0f64, 2f64 * PI)
-                    .unwrap();
-                context.set_fill_style(&JsValue::from(name));
-                context.fill();
-                context.set_shadow_color(name);
-                context.set_shadow_blur(6f64);
-                context.set_shadow_offset_x(0f64);
-                context.set_shadow_offset_y(0f64);
-                context.close_path();
-            }
-        }
+#[wasm_bindgen]
+pub fn start_render() {
+    unsafe {
+        let crr_state = LIFE_INSTANCE.get_mut().unwrap();
+        crr_state.render_engine.set_rendering(true).render_piline();
+    }
+}
+
+#[wasm_bindgen]
+pub fn stop_render() {
+    unsafe {
+        let crr_state = LIFE_INSTANCE.get_mut().unwrap();
+        crr_state.render_engine.set_rendering(false);
+    }
+}
+
+#[wasm_bindgen]
+pub fn next_frame() {
+    unsafe {
+        let crr_state = LIFE_INSTANCE.get_mut().unwrap();
+        crr_state.update_engine_state();
+        crr_state.render_engine.set_rendering(true).render_piline();
+    }
+}
+
+#[wasm_bindgen]
+pub fn set_speed(speed: f64) {
+    unsafe {
+        let crr_state = LIFE_INSTANCE.get_mut().unwrap();
+        crr_state.configuration.speed = Some(speed);
     }
 }
