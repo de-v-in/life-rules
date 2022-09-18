@@ -19,30 +19,36 @@ export const AppScreen: IComponent = () => {
     const builder = new RuleBuilder(
       document.getElementById("life") as HTMLCanvasElement,
       () => {
-        // builder.wasmModule?.initial_configuration(colors, getWASMRule());
+        builder.wasmModule?.initialize("life", colors, getWASMRule());
         // builder.wasmModule?.set_render(true);
-        builder.wasmModule?.set_speed(1);
+        builder.wasmModule?.set_speed(0.5);
         builderRef.current = builder;
         builderRef.current.wasmModule?.start_render();
+        builderRef.current.wasmModule?.start_loop_engine();
         setLoaded(true);
       }
     );
   }, []);
 
   const triggerRender = useCallback(() => {
-    builderRef.current?.wasmModule?.next_frame();
+    // builderRef.current?.wasmModule?.next_frame();
   }, []);
+  const updateTick = (tick: number) => {
+    if (tick === 0) {
+      builderRef.current?.wasmModule?.stop_render();
+    } else {
+      builderRef.current?.wasmModule?.start_render();
+      builderRef.current?.wasmModule?.set_tick(tick);
+    }
+  };
   const showColorPicker = () => changePickerStatus(true);
 
   const reloadCanvas = useCallback(() => {
-    // builderRef.current?.wasmModule?.initial_configuration(
-    //   colors,
-    //   getWASMRule()
-    // );
-  }, [colors, getWASMRule]);
+    builderRef.current?.wasmModule?.update_colors(colors);
+  }, [colors]);
 
   const reloadRule = useCallback(() => {
-    // builderRef.current?.wasmModule?.update_rule(getWASMRule());
+    builderRef.current?.wasmModule?.update_rules(getWASMRule());
   }, [getWASMRule]);
 
   useEffect(() => {
@@ -52,24 +58,22 @@ export const AppScreen: IComponent = () => {
   useEffect(() => {
     // TODO: Update while rendering when it ready
     // builderRef.current?.wasmModule?.update_colors(colors);
-
     // FIX: Current we reinitial canvas when update color configs
-    reloadCanvas();
-  }, [reloadCanvas]);
+    // reloadCanvas();
+    builderRef.current?.wasmModule?.update_colors(colors);
+  }, [colors]);
 
   useEffect(() => {
     reloadRule();
-  }, [rules]);
+  }, [reloadRule, rules]);
 
   return (
     <div className="flex flex-row h-full bg-black">
-      <div
-        style={{ minWidth: 400 }}
-        className="h-full flex-col gap-2 p-2 hidden"
-      >
+      <div style={{ minWidth: 400 }} className="h-full flex-col gap-2 p-2 flex">
         <FPSController
           enable={loaded}
-          frameRenderFn={triggerRender}
+          getFrameIdx={builderRef.current?.wasmModule?.get_crr_frame_idx}
+          updateTick={updateTick}
           reloadFn={reloadCanvas}
         />
         <div className="w-full h-1/3 border border-blue-900 flex flex-col">
@@ -118,7 +122,7 @@ export const AppScreen: IComponent = () => {
         <div className="absolute top-2 left-2"></div>
         <canvas
           id="life"
-          width="1000px"
+          width="600px"
           height="600px"
           className="border border-gray-800 rounded-lg"
         ></canvas>

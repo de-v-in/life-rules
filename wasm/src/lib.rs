@@ -3,9 +3,11 @@ mod utils;
 extern crate serde_json;
 extern crate wasm_bindgen;
 
+use game_loop::game_loop;
 use rand::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::f64::consts::PI;
+use std::time::SystemTime;
 use std::{collections::HashMap, sync::Mutex};
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
@@ -194,15 +196,15 @@ impl Atom {
     fn draw(&self, ctx: &CanvasRenderingContext2d) {
         ctx.begin_path();
         let draw_square_default = || {
-            ctx.set_fill_style(&JsValue::from(self.color.clone()));
-            ctx.fill_rect(self.x, self.y, self.size, self.size);
-
             // Draw outline
             let mut lower_color = self.color.clone();
-            let outline_size: f64 = self.size + 2f64;
+            let outline_size: f64 = self.size + 4f64;
             lower_color.push_str("99");
             ctx.set_fill_style(&JsValue::from(lower_color));
-            ctx.fill_rect(self.x - 1f64, self.y - 1f64, outline_size, outline_size);
+            ctx.fill_rect(self.x - 2f64, self.y - 2f64, outline_size, outline_size);
+
+            ctx.set_fill_style(&JsValue::from(self.color.clone()));
+            ctx.fill_rect(self.x, self.y, self.size, self.size);
         };
         match self.shape {
             Some(AtomShape::Dot) => {
@@ -241,6 +243,7 @@ struct RenderEngine {
     rendering: bool,
     atoms: Option<HashMap<String, Vec<Atom>>>,
     ctx: Option<CanvasRenderingContext2d>,
+    frames: i64,
 }
 
 impl RenderEngine {
@@ -267,15 +270,12 @@ impl RenderEngine {
         self
     }
 
-    pub fn render_piline(&self) {
+    pub fn render_piline(&mut self) {
         if !self.rendering {
             return;
         }
+        self.frames += 1;
         self.render();
-
-        // Sleep before next frame
-        // wasm_thread::sleep(Duration::from_millis(100));
-        // self.render_piline()
     }
 }
 
@@ -286,6 +286,9 @@ struct LifeManager {
 
 impl LifeManager {
     fn update_engine_state(&mut self) {
+        if !self.render_engine.rendering {
+            return;
+        }
         let engine = &mut self.render_engine;
         let canvas = engine.ctx.as_ref().unwrap().canvas().unwrap();
         let cv_w = canvas.width() as f64;
@@ -297,11 +300,13 @@ impl LifeManager {
         for rule in rules {
             if let Some(atoms) = &mut engine.atoms {
                 let atom_b = atoms.get(&rule.target).unwrap().clone();
-                atoms.iter_mut().for_each(|(_, color_atoms)| {
-                    color_atoms.iter_mut().for_each(|src_atom| {
-                        src_atom.next_state_by_rule(atom_b.to_vec(), rule.weight, speed, cv_w, cv_h)
-                    });
-                });
+                rule.clone().apply(
+                    atoms.get_mut(&rule.src).unwrap(),
+                    atom_b.to_vec(),
+                    speed,
+                    cv_w,
+                    cv_h,
+                )
             }
         }
     }
@@ -356,6 +361,7 @@ static mut LIFE_INSTANCE: Mutex<LifeManager> = Mutex::new(LifeManager {
         rendering: false,
         atoms: None,
         ctx: None,
+        frames: 0i64,
     },
     configuration: Configuration {
         colors: None,
@@ -391,6 +397,82 @@ pub fn initialize(canvas_id: String, colors: &JsValue, rules: &JsValue) {
 }
 
 #[wasm_bindgen]
+pub fn update_rules(rules: &JsValue) {
+    unsafe {
+        let crr_state = LIFE_INSTANCE.get_mut().unwrap();
+        let rules = Configuration::raw_into_rules(rules);
+        crr_state.configuration.rules = rules;
+    }
+}
+
+#[wasm_bindgen]
+pub fn update_colors(colors: &JsValue) {
+    unsafe {
+        let crr_state = LIFE_INSTANCE.get_mut().unwrap();
+        let engine = &mut crr_state.render_engine;
+        let colors = Configuration::raw_into_colors(colors);
+        let canvas = &engine.ctx.as_ref().unwrap().canvas().unwrap();
+
+        // Update or insert new colors
+        for (name, conf) in &colors {
+            if let Some(atoms) = &mut engine.atoms {
+                let color_atoms = atoms.get_mut(name);
+
+                if let Some(color_atoms) = color_atoms {
+                    if color_atoms.len() as i32 > conf.total {
+                        color_atoms.set_len(conf.total as usize);
+                    } else {
+                        for _ in 0..(conf.total - color_atoms.len() as i32) {
+                            color_atoms.push(Atom::born(
+                                canvas.width() as f64,
+                                canvas.height() as f64,
+                                0f64,
+                                conf.size,
+                                name.to_string(),
+                                conf.shape.clone(),
+                                conf.blur,
+                            ))
+                        }
+                    }
+
+                    for mut atom in color_atoms {
+                        atom.size = conf.size;
+                        atom.shape = conf.shape.clone();
+                    }
+                } else {
+                    let mut color_atoms: Vec<Atom> = vec![];
+                    for _ in 0..conf.total {
+                        color_atoms.push(Atom::born(
+                            canvas.width() as f64,
+                            canvas.height() as f64,
+                            0f64,
+                            conf.size,
+                            name.to_string(),
+                            conf.shape.clone(),
+                            conf.blur,
+                        ))
+                    }
+                    atoms.insert(name.to_string(), color_atoms);
+                }
+            }
+        }
+        // Check some color is removed
+        if let Some(atoms) = &mut engine.atoms {
+            let mut removeter: Vec<String> = vec![];
+            atoms.into_iter().for_each(|(name, _)| {
+                if colors.get(name).is_none() {
+                    removeter.push(name.to_string());
+                }
+            });
+            for removed in &removeter {
+                atoms.remove(removed);
+            }
+        }
+        crr_state.configuration.colors = Some(colors);
+    }
+}
+
+#[wasm_bindgen]
 pub fn start_render() {
     unsafe {
         let crr_state = LIFE_INSTANCE.get_mut().unwrap();
@@ -420,5 +502,40 @@ pub fn set_speed(speed: f64) {
     unsafe {
         let crr_state = LIFE_INSTANCE.get_mut().unwrap();
         crr_state.configuration.speed = Some(speed);
+    }
+}
+
+#[wasm_bindgen]
+pub fn set_tick(tick: u32) {
+    unsafe {
+        let crr_state = LIFE_INSTANCE.get_mut().unwrap();
+        crr_state.render_engine.tick = tick;
+    }
+}
+
+#[wasm_bindgen]
+pub fn start_loop_engine() {
+    unsafe {
+        let crr_state = LIFE_INSTANCE.get_mut().unwrap();
+        game_loop(
+            crr_state,
+            120,
+            0.2,
+            move |g| {
+                g.set_updates_per_second(g.game.render_engine.tick);
+                g.game.update_engine_state();
+            },
+            |g| {
+                g.game.render_engine.render_piline();
+            },
+        );
+    }
+}
+
+#[wasm_bindgen]
+pub fn get_crr_frame_idx() -> i64 {
+    unsafe {
+        let crr_state = LIFE_INSTANCE.lock().unwrap();
+        crr_state.render_engine.frames
     }
 }

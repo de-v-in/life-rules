@@ -8,79 +8,81 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import styles from "./styles.module.scss";
 
-const FPS_RPOFILE = [1, 5, 10, 15, 30, -1, 0];
+const FPS_RPOFILE = [1, 6, 15, 30, 60, -1, 0];
 
 export const FPSController: IComponent<{
   enable?: boolean;
-  frameRenderFn?: () => void;
+  getFrameIdx?: () => bigint;
+  updateTick?: (speed: number) => void;
   reloadFn?: () => void;
-}> = ({ enable = false, frameRenderFn, reloadFn }) => {
+}> = ({ enable = false, updateTick, getFrameIdx, reloadFn }) => {
   const [speed, setSpeed] = useState<number>(30);
   const [fps, setFps] = useState(30);
   const crrSpeed = useRef(30);
   const maxRef = useRef(false);
-  const ticks = useRef<number[]>([]);
+  const prevFrameId = useRef(0);
+  const avg_frame = useRef<number[]>([]);
 
-  const handleChangeSpeed = useCallback((nSpeed: number) => {
-    setSpeed(nSpeed);
-    crrSpeed.current = nSpeed;
-    if (nSpeed >= 0) {
-      maxRef.current = false;
-      setFps(nSpeed);
-    }
-    if (nSpeed === -1) maxRef.current = true;
-  }, []);
-
-  const startRender = useCallback(() => {
-    if (!enable) return;
-    if (crrSpeed.current !== speed) return;
-    if (crrSpeed.current === 0) return;
-    const now = performance.now();
-    while (ticks.current.length > 0 && ticks.current[0] <= now - 1000) {
-      ticks.current.shift();
-    }
-    setFps(ticks.current.length);
-    frameRenderFn?.();
-    if (maxRef.current) {
-      ticks.current.push(now);
-      requestAnimationFrame(startRender);
-    } else {
-      const nextTick =
-        1000 / speed +
-        ticks.current[ticks.current.length - 1] -
-        performance.now();
-      ticks.current.push(performance.now());
-      if (nextTick <= 0) {
-        requestAnimationFrame(startRender);
+  const handleChangeSpeed = useCallback(
+    (nSpeed: number) => {
+      setSpeed(nSpeed);
+      crrSpeed.current = nSpeed;
+      if (nSpeed >= 0) {
+        maxRef.current = false;
+        setFps(nSpeed);
+      }
+      if (nSpeed === -1) {
+        maxRef.current = true;
+        updateTick?.(120);
       } else {
-        setTimeout(() => {
-          requestAnimationFrame(startRender);
-        }, nextTick);
+        updateTick?.(nSpeed);
       }
-    }
-  }, [enable, frameRenderFn, speed]);
+    },
+    [updateTick]
+  );
 
-  const handleTabChange = useCallback(() => {
-    if (document.visibilityState == "visible") {
-      crrSpeed.current = speed;
-      if (Browser.isSafari) {
-        startRender();
-      }
-    } else {
-      crrSpeed.current = 0;
-    }
-  }, [speed, startRender]);
+  // const handleTabChange = useCallback(() => {
+  //   if (document.visibilityState == "visible") {
+  //     crrSpeed.current = speed;
+  //     if (Browser.isSafari) {
+  //       startRender();
+  //     }
+  //   } else {
+  //     crrSpeed.current = 0;
+  //   }
+  // }, [speed, startRender]);
 
   useEffect(() => {
-    startRender();
-  }, [startRender]);
-
-  useEffect(() => {
-    document.addEventListener("visibilitychange", handleTabChange);
+    const fps_check = setInterval(() => {
+      const id = getFrameIdx?.();
+      if (id) {
+        const index = Number(id);
+        const crr_fps = index - prevFrameId.current;
+        prevFrameId.current = index;
+        avg_frame.current.unshift(crr_fps);
+      }
+      if (avg_frame.current.length > 30) {
+        avg_frame.current = avg_frame.current.slice(0, 30);
+      }
+    }, 100);
+    const fps_update = setInterval(() => {
+      const val =
+        avg_frame.current.reduce((prev, crr) => crr + prev, 0) /
+        (avg_frame.current.length / 10);
+      setFps(Math.round(val));
+    }, 10);
     return () => {
-      document.removeEventListener("visibilitychange", handleTabChange);
+      clearInterval(fps_check);
+      clearInterval(fps_update);
     };
-  }, [handleTabChange]);
+  }, [getFrameIdx]);
+
+  // useEffect(() => {
+  //   document.addEventListener("visibilitychange", handleTabChange);
+  //   return () => {
+  //     document.removeEventListener("visibilitychange", handleTabChange);
+  //   };
+  // }, [handleTabChange]);
 
   return (
     <>
