@@ -1,16 +1,25 @@
-# DEVIN NextJS Template
+# RULE OF PARTICALES
 
-> Helping when start new frontend project
+> Funny project for learning and exploring rust
 
-This is NextJS with React 18 template, which support auto format with eslint and intergrate `husky` for code checking before commit. This will help in smooth out project building.
 
 ## Project detail
+
+### Step to run project
++ Install `rustup` [from here](https://rustup.rs) for rust compiler
++ Install `wasm-pack` [from here](https://rustwasm.github.io/wasm-pack/installer/) for package wasm as linrary
++ Run `yarn install` in your library
++ Run `yarn build:wasm` for compile rust library
++ Run `yarn dev` and go to `localhost:3000` to see web app
++ [Option] Update rust code at `wasm` folder
++ [Option] Call `yarn build:wasm` each time you change your rust code for rebuild library
 
 ### Commands
 
 - Run: `yarn install` for install all packages
 - Run: `yarn dev` for start dev environment
 - Run: `yarn build` for build your project
+- Run: `yarn build:wasm` for build `rust` code and copy into public folder
 - Run: `yarn start` for start your built project
 - Run: `yarn lint` for checking error and fix it
 
@@ -28,13 +37,15 @@ This is NextJS with React 18 template, which support auto format with eslint and
 ├── layouts             # Layouts of screen and components
 ├── pages               # Page file of NextJS (Use as router to screen folder)
 ├── public              # Public folder, contain static files
+│   └── wasm            # Output of wasm code, react will import wasm from this
 ├── screens             # Screen component goes here
 ├── services            # All services goes here
 ├── states              # State managerment for app
 │   └── atoms           # Recoil's atom states (for app state)
 ├── styles              # App global styles (SCSS)
 ├── types               # App global type (Typescript)
-└── utils               # App's utils
+├── utils               # App's utils
+└── wasm                # Include rust code for wasm
 ```
 
 ### Some code rule
@@ -50,7 +61,9 @@ This is NextJS with React 18 template, which support auto format with eslint and
 ## Tech included
 
 - `NextJS + Typescript` Base source
-- `RecoilJS` State managerment
+- `zustand` State managerment
 - `Husky` Git helper
+- `Rust` Build wasm library
+- `TailwindCSS` Main UI css library
 - `SCSS modules` Style system
 - `Eslint and Prettier` Rule of code
