@@ -1,10 +1,12 @@
-pub fn set_panic_hook() {
-    // When the `console_error_panic_hook` feature is enabled, we can call the
-    // `set_panic_hook` function at least once during initialization, and then
-    // we will get better error messages if our code ever panics.
-    //
-    // For more details see
-    // https://github.com/rustwasm/console_error_panic_hook#readme
-    #[cfg(feature = "console_error_panic_hook")]
-    console_error_panic_hook::set_once();
+use rand::Rng;
+
+/// Return random number in range.
+pub fn random_range(min: f64, max: f64) -> f64 {
+    let seed: f64 = rand::thread_rng().gen();
+    min + seed * (max - min)
+}
+
+/// Convert a string into f64 number
+pub fn str_to_f64(str: &str) -> f64 {
+    str::parse::<f64>(str).unwrap_or(0f64)
 }

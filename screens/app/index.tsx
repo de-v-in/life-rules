@@ -19,12 +19,12 @@ export const AppScreen: IComponent = () => {
     const builder = new RuleBuilder(
       document.getElementById("life") as HTMLCanvasElement,
       () => {
-        builder.wasmModule?.initialize("life", colors, getWASMRule());
+        builder.wasmModule?.init_engine("life");
+        builder.wasmModule?.update_conf(colors);
+        builder.wasmModule?.update_rules(getWASMRule());
         // builder.wasmModule?.set_render(true);
-        builder.wasmModule?.set_speed(0.5);
         builderRef.current = builder;
         builderRef.current.wasmModule?.start_render();
-        builderRef.current.wasmModule?.start_loop_engine();
         setLoaded(true);
       }
     );
@@ -44,8 +44,8 @@ export const AppScreen: IComponent = () => {
   const showColorPicker = () => changePickerStatus(true);
 
   const reloadCanvas = useCallback(() => {
-    builderRef.current?.wasmModule?.update_colors(colors);
-  }, [colors]);
+    builderRef.current?.wasmModule?.reload();
+  }, []);
 
   const reloadRule = useCallback(() => {
     builderRef.current?.wasmModule?.update_rules(getWASMRule());
@@ -57,10 +57,10 @@ export const AppScreen: IComponent = () => {
 
   useEffect(() => {
     // TODO: Update while rendering when it ready
-    // builderRef.current?.wasmModule?.update_colors(colors);
+    // builderRef.current?.wasmModule?.update_conf(colors);
     // FIX: Current we reinitial canvas when update color configs
     // reloadCanvas();
-    builderRef.current?.wasmModule?.update_colors(colors);
+    builderRef.current?.wasmModule?.update_conf(colors);
   }, [colors]);
 
   useEffect(() => {

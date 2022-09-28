@@ -1,15 +1,13 @@
 /* tslint:disable */
 /* eslint-disable */
 export const memory: WebAssembly.Memory;
-export function initialize(a: number, b: number, c: number, d: number): void;
-export function update_rules(a: number): void;
-export function update_colors(a: number): void;
+export function init_engine(a: number, b: number): void;
+export function reload(): void;
 export function start_render(): void;
 export function stop_render(): void;
-export function next_frame(): void;
-export function set_speed(a: number): void;
 export function set_tick(a: number): void;
-export function start_loop_engine(): void;
+export function update_rules(a: number): void;
+export function update_conf(a: number): void;
 export function get_crr_frame_idx(a: number): void;
 export function __wbindgen_malloc(a: number): number;
 export function __wbindgen_realloc(a: number, b: number, c: number): number;
