@@ -2344,10 +2344,10 @@ react-merge-refs@v1.1.0:
   resolved "https://registry.yarnpkg.com/react-merge-refs/-/react-merge-refs-1.1.0.tgz#73d88b892c6c68cbb7a66e0800faa374f4c38b06"
   integrity sha512-alTKsjEL0dKH/ru1Iyn7vliS2QRcBp9zZPGoWxUOvRGWPUYgjo+V01is7p04It6KhgrzhJGnIj9GgX8W4bZoCQ==
 
-react-simple-tailwind-table@^0.1.1:
-  version "0.1.1"
-  resolved "https://registry.yarnpkg.com/react-simple-tailwind-table/-/react-simple-tailwind-table-0.1.1.tgz#dd5bceba26a7021fc7ef6c74519ad8f7ac1e542e"
-  integrity sha512-+HmxWK8qC3rG+WwmDySzoNxhAJHx5WWKDEpuCnhfI1aZ+q+01vLUIVdae8bMSmIYph59s0j04seZuvWbmsPz/A==
+react-simple-tailwind-table@^0.1.6:
+  version "0.1.6"
+  resolved "https://registry.yarnpkg.com/react-simple-tailwind-table/-/react-simple-tailwind-table-0.1.6.tgz#a41c24822c3e9d1f5fb47cc347d12a4d7885499c"
+  integrity sha512-vGZIybOZ4vbUcQ7Ir2RGM6ktqybvvElzh70V1MQpS07YC8Cnw1LWehcnDaCWJd4ArNgqsRjm0FLdtgpA9imugA==
   dependencies:
     chroma-js "^2.4.2"
     classnames "^2.3.1"

@@ -10,11 +10,22 @@ RUN yarn install --frozen-lockfile
 # COPY package.json package-lock.json ./ 
 # RUN npm ci
 
+# Build wasm
+FROM rust:latest AS wasmer
+
+RUN rustup target add wasm32-unknown-unknown
+RUN cargo install wasm-pack
+RUN apt-get update && apt-get -y install binaryen
+WORKDIR /wasm
+COPY wasm /wasm/
+RUN cd /wasm/ && wasm-pack build --target bundler
+
 # Rebuild the source code only when needed
 FROM node:16-alpine AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+COPY --from=wasmer /wasm/pkg ./public/wasm
 
 # Next.js collects completely anonymous telemetry data about general usage.
 # Learn more here: https://nextjs.org/telemetry
@@ -53,4 +64,4 @@ EXPOSE 3000
 
 ENV PORT 3000
 
-CMD ["node", "server.js"]o
+CMD ["node", "server.js"]

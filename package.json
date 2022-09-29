@@ -8,7 +8,7 @@
     "start": "next start",
     "prepare": "husky install",
     "lint": "eslint . --ext .js,.jsx,.ts,.tsx --fix",
-    "build:wasm": "cd wasm && wasm-pack build && rm -r ../public/wasm && mv pkg ../public/wasm && rm ../public/wasm/.gitignore"
+    "build:wasm": "cd wasm && wasm-pack build && rm -rf ../public/wasm && mv pkg ../public/wasm"
   },
   "dependencies": {
     "@material-tailwind/react": "^1.2.4",
@@ -21,7 +21,7 @@
     "react-color": "^2.19.3",
     "react-dom": "^18.2.0",
     "react-hook-form": "^7.35.0",
-    "react-simple-tailwind-table": "^0.1.1",
+    "react-simple-tailwind-table": "^0.1.6",
     "react-transition-group": "^4.4.5",
     "zustand": "^4.1.1"
   },

@@ -186,7 +186,6 @@ export const RuleConfiguration: IComponent = () => {
       },
       {
         label: "",
-        accessor: "tools",
         header: {
           background: "#0a3880",
           className: "border-blue-800 text-white text-source",

@@ -7,6 +7,7 @@ module.exports = withMT({
     "./layouts/**/*.{js,ts,jsx,tsx}",
     "./screens/**/*.{js,ts,jsx,tsx}",
     "./components/**/*.{js,ts,jsx,tsx}",
+    "./node_modules/react-simple-tailwind-table/**/*.{html,js,ts,css,scss}",
   ],
   theme: {
     extend: {

@@ -5,9 +5,9 @@ interface IBuilderState {
   colors: {
     [key: string]: {
       total: number;
-      size: number;
+      point_size: number;
       shape?: string;
-      blur?: number;
+      blur_radius?: number;
     };
   };
   rules: [string, string, number][];
@@ -24,8 +24,8 @@ interface IBuilderState {
 const useBuilderStore = create<IBuilderState>((set, get) => ({
   showPicker: false,
   colors: {
-    "#4A90E2": { total: 300, size: 6, shape: "Square" },
-    "#ffffff": { total: 300, size: 1, shape: "Square" },
+    "#4A90E2": { total: 300, point_size: 6 },
+    "#ffffff": { total: 300, point_size: 1 },
   },
   rules: [
     ["#4A90E2", "#4A90E2", -0.32],
@@ -43,7 +43,7 @@ const useBuilderStore = create<IBuilderState>((set, get) => ({
     set({
       colors: {
         ...get().colors,
-        [name]: { total: 300, size: 4 },
+        [name]: { total: 300, point_size: 4 },
       },
       rules: [
         ...get().rules,
@@ -73,11 +73,11 @@ const useBuilderStore = create<IBuilderState>((set, get) => ({
       },
     });
   },
-  editColorSize: (name, size) => {
+  editColorSize: (name, point_size) => {
     set({
       colors: {
         ...get().colors,
-        [name]: { ...get().colors[name], size },
+        [name]: { ...get().colors[name], point_size },
       },
     });
   },

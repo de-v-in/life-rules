@@ -92,7 +92,7 @@ export const ColorConfiguration: IComponent = () => {
       },
       {
         label: "Point size",
-        accessor: "size",
+        accessor: "point_size",
         header: {
           background: "#0a3880",
           className: "border-blue-800 text-white text-source",
@@ -114,7 +114,7 @@ export const ColorConfiguration: IComponent = () => {
             <input
               style={{ width: 100 }}
               className="w-32 bg-transparent text-white px-2 text-xs py-1 outline-none text-center"
-              defaultValue={data.size}
+              defaultValue={data.point_size}
               onChange={(ev) =>
                 editColorSize(data.name, parseInt(ev.target.value, 10) || 0)
               }
@@ -125,7 +125,6 @@ export const ColorConfiguration: IComponent = () => {
       },
       {
         label: "",
-        accessor: "tools",
         header: {
           background: "#0a3880",
           className: "border-blue-800 text-white text-source",
@@ -198,6 +197,7 @@ export const ColorConfiguration: IComponent = () => {
                 onClick={handleHidePicker}
                 size="sm"
                 color="white"
+                variant="text"
                 style={{ height: 26, padding: 0 }}
               >
                 <span className="px-1">BACK</span>
@@ -206,6 +206,7 @@ export const ColorConfiguration: IComponent = () => {
                 onClick={handleAddNewColor}
                 size="sm"
                 color="white"
+                variant="text"
                 style={{ height: 26, padding: 0 }}
               >
                 <span className="text-white px-1">ADD</span>

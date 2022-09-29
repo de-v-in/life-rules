@@ -22,9 +22,9 @@ export const AppScreen: IComponent = () => {
         builder.wasmModule?.init_engine("life");
         builder.wasmModule?.update_conf(colors);
         builder.wasmModule?.update_rules(getWASMRule());
-        // builder.wasmModule?.set_render(true);
+        builder.wasmModule?.change_entropy(0.8);
+        builder.wasmModule?.start_render();
         builderRef.current = builder;
-        builderRef.current.wasmModule?.start_render();
         setLoaded(true);
       }
     );
@@ -83,6 +83,7 @@ export const AppScreen: IComponent = () => {
             </p>
             <IconButton
               color="white"
+              variant="text"
               size="sm"
               onClick={showColorPicker}
               style={{ height: 18, width: 18 }}
