@@ -7,7 +7,7 @@
 
 ### Step to run project
 + Install `rustup` [from here](https://rustup.rs) for rust compiler
-+ Install `wasm-pack` [from here](https://rustwasm.github.io/wasm-pack/installer/) for package wasm as linrary
++ Install `wasm-pack` [from here](https://rustwasm.github.io/wasm-pack/installer/) for package wasm as a library
 + Run `yarn install` in your library
 + Run `yarn build:wasm` for compile rust library
 + Run `yarn dev` and go to `localhost:3000` to see web app
