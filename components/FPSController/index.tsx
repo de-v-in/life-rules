@@ -86,7 +86,7 @@ export const FPSController: IComponent<{
 
   return (
     <>
-      <div className="absolute top-2 right-2 flex flex-col items-end">
+      <div className="absolute top-4 right-4 flex flex-col items-end">
         <span className="text-white text-craft text-xl opacity-80">
           RULE<span className="opacity-70 text-sm">OF</span>
           <span className="text-blue-500">PARTICLES</span>

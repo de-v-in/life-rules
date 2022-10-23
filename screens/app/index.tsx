@@ -6,6 +6,7 @@ import { RuleBuilder } from "@utils/builder";
 import { cx } from "@utils/tools";
 import Image from "next/image";
 import { useCallback, useEffect, useRef, useState } from "react";
+import AutoSizer from "react-virtualized-auto-sizer";
 
 import { ColorConfiguration } from "./ColorConfiguration";
 import { RuleConfiguration } from "./RuleConfiguration";
@@ -22,7 +23,7 @@ export const AppScreen: IComponent = () => {
         builder.wasmModule?.init_engine("life");
         builder.wasmModule?.update_conf(colors);
         builder.wasmModule?.update_rules(getWASMRule());
-        builder.wasmModule?.change_entropy(0.8);
+        builder.wasmModule?.change_entropy(0.5);
         builder.wasmModule?.start_render();
         builderRef.current = builder;
         setLoaded(true);
@@ -115,18 +116,18 @@ export const AppScreen: IComponent = () => {
           <RuleConfiguration />
         </div>
       </div>
-      <div
-        className={cx(
-          "w-screen h-screen flex justify-center items-center relative"
-        )}
-      >
+      <div className={cx("w-full h-full flex relative py-2 pr-2")}>
         <div className="absolute top-2 left-2"></div>
-        <canvas
-          id="life"
-          width="600px"
-          height="600px"
-          className="border border-gray-800 rounded-lg"
-        ></canvas>
+        <AutoSizer>
+          {({ width, height }) => (
+            <canvas
+              id="life"
+              width={width}
+              height={height}
+              className="border border-blue-900"
+            ></canvas>
+          )}
+        </AutoSizer>
         {/* <div className="absolute bottom-3 right-3"> */}
         {/*   <div className="relative"> */}
         {/*     <Image */}

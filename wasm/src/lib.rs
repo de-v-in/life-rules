@@ -4,7 +4,7 @@ mod system;
 mod utils;
 mod vector;
 
-use std::{sync::Mutex, collections::HashMap};
+use std::{collections::HashMap, sync::Mutex};
 
 use game_loop::game_loop;
 use wasm_bindgen::{prelude::wasm_bindgen, JsCast, JsValue};
