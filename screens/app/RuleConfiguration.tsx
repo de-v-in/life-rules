@@ -28,11 +28,13 @@ export const RuleConfiguration: IComponent = () => {
         accessor: "colorA",
         header: {
           background: "#0a3880",
-          className: "border-blue-800 text-white text-source",
+          className:
+            "border-blue-800 border-l-transparent text-white text-source",
         },
         body: {
           background: "#222",
-          className: "border-blue-800 text-white text-xs py-1",
+          className:
+            "border-blue-800 border-l-transparent text-white text-xs py-1",
         },
         align: "left",
         renderData: (data) => {
@@ -188,11 +190,12 @@ export const RuleConfiguration: IComponent = () => {
         label: "",
         header: {
           background: "#0a3880",
-          className: "border-blue-800 text-white text-source",
+          className:
+            "border-blue-800 text-white text-source border-r-transparent",
         },
         body: {
           background: "#222",
-          className: "border-blue-800 text-white text-xs",
+          className: "border-blue-800 text-white text-xs border-r-transparent",
         },
         width: 32,
         renderData: (data) => {

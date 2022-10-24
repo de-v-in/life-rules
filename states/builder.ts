@@ -24,8 +24,8 @@ interface IBuilderState {
 const useBuilderStore = create<IBuilderState>((set, get) => ({
   showPicker: false,
   colors: {
-    "#4A90E2": { total: 300, point_size: 6 },
-    "#ffffff": { total: 300, point_size: 1 },
+    "#4A90E2": { total: 600, point_size: 2, blur_radius: 2, shape: "Dot" },
+    "#ffffff": { total: 600, point_size: 1, shape: "Triangle" },
   },
   rules: [
     ["#4A90E2", "#4A90E2", -0.32],

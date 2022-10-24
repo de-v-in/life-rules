@@ -29,11 +29,8 @@ export const AppScreen: IComponent = () => {
         setLoaded(true);
       }
     );
-  }, []);
+  }, [colors, getWASMRule]);
 
-  const triggerRender = useCallback(() => {
-    // builderRef.current?.wasmModule?.next_frame();
-  }, []);
   const updateTick = (tick: number) => {
     if (tick === 0) {
       builderRef.current?.wasmModule?.stop_render();
@@ -57,10 +54,6 @@ export const AppScreen: IComponent = () => {
   }, [initialBuilder]);
 
   useEffect(() => {
-    // TODO: Update while rendering when it ready
-    // builderRef.current?.wasmModule?.update_conf(colors);
-    // FIX: Current we reinitial canvas when update color configs
-    // reloadCanvas();
     builderRef.current?.wasmModule?.update_conf(colors);
   }, [colors]);
 
@@ -70,7 +63,10 @@ export const AppScreen: IComponent = () => {
 
   return (
     <div className="flex flex-row h-full bg-black">
-      <div style={{ minWidth: 400 }} className="h-full flex-col gap-2 p-2 flex">
+      <div
+        style={{ minWidth: 400 }}
+        className="h-full flex-col gap-2 py-2 pl-2 flex"
+      >
         <FPSController
           enable={loaded}
           getFrameIdx={builderRef.current?.wasmModule?.get_crr_frame_idx}
@@ -116,30 +112,26 @@ export const AppScreen: IComponent = () => {
           <RuleConfiguration />
         </div>
       </div>
-      <div className={cx("w-full h-full flex relative py-2 pr-2")}>
-        <div className="absolute top-2 left-2"></div>
-        <AutoSizer>
-          {({ width, height }) => (
-            <canvas
-              id="life"
-              width={width}
-              height={height}
-              className="border border-blue-900"
-            ></canvas>
-          )}
-        </AutoSizer>
-        {/* <div className="absolute bottom-3 right-3"> */}
-        {/*   <div className="relative"> */}
-        {/*     <Image */}
-        {/*       src={TeamLogo} */}
-        {/*       alt="team" */}
-        {/*       layout="fixed" */}
-        {/*       width={96} */}
-        {/*       height={32} */}
-        {/*       objectFit="contain" */}
-        {/*     /> */}
-        {/*   </div> */}
-        {/* </div> */}
+      <div className={cx("w-full h-full flex relative py-2 p-2")}>
+        <div className="flex-auto border border-blue-900 relative">
+          <AutoSizer>
+            {({ width, height }) => (
+              <canvas id="life" width={width} height={height}></canvas>
+            )}
+          </AutoSizer>
+        </div>
+        <div className="absolute bottom-3 right-3">
+          <div className="relative">
+            <Image
+              src={TeamLogo}
+              alt="team"
+              layout="fixed"
+              width={96}
+              height={32}
+              objectFit="contain"
+            />
+          </div>
+        </div>
       </div>
     </div>
   );

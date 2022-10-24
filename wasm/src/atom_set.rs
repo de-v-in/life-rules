@@ -60,15 +60,19 @@ impl AtomSet {
             let mut lower_color = self.color.clone();
             let outline_size: f64 = point_size + 4f64;
             lower_color.push_str("99");
-            ctx.set_fill_style(&JsValue::from(lower_color));
-            ctx.fill_rect(
-                point.p.x - 2f64,
-                point.p.y - 2f64,
-                outline_size,
-                outline_size,
-            );
-            ctx.set_fill_style(&JsValue::from(self.color.clone()));
-            ctx.fill_rect(point.p.x, point.p.y, point_size, point_size);
+            match self.config.shape {
+                _ => {
+                    ctx.set_fill_style(&JsValue::from(lower_color));
+                    ctx.fill_rect(
+                        point.p.x - 2f64,
+                        point.p.y - 2f64,
+                        outline_size,
+                        outline_size,
+                    );
+                    ctx.set_fill_style(&JsValue::from(self.color.clone()));
+                    ctx.fill_rect(point.p.x, point.p.y, point_size, point_size);
+                }
+            }
             if let Some(blur_radius) = self.config.blur_radius {
                 ctx.set_shadow_color(&self.color);
                 ctx.set_shadow_blur(blur_radius);

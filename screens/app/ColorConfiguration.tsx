@@ -45,11 +45,13 @@ export const ColorConfiguration: IComponent = () => {
         accessor: "name",
         header: {
           background: "#0a3880",
-          className: "border-blue-800 text-white text-source",
+          className:
+            "border-blue-800 text-white text-source border-l-transparent",
         },
         body: {
           background: "#222",
-          className: "border-blue-800 text-white text-xs py-1",
+          className:
+            "border-blue-800 text-white text-xs py-1 border-l-transparent",
         },
         align: "left",
         renderData: (data) => {
@@ -127,11 +129,12 @@ export const ColorConfiguration: IComponent = () => {
         label: "",
         header: {
           background: "#0a3880",
-          className: "border-blue-800 text-white text-source",
+          className:
+            "border-blue-800 text-white text-source border-r-transparent",
         },
         body: {
           background: "#222",
-          className: "border-blue-800 text-white text-xs",
+          className: "border-blue-800 text-white text-xs border-r-transparent",
         },
         width: 32,
         renderData: (data) => {

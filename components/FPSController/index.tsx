@@ -16,8 +16,8 @@ export const FPSController: IComponent<{
   updateTick?: (speed: number) => void;
   reloadFn?: () => void;
 }> = ({ enable = false, updateTick, getFrameIdx, reloadFn }) => {
-  const [speed, setSpeed] = useState<number>(30);
-  const [fps, setFps] = useState(30);
+  const [speed, setSpeed] = useState<number>(60);
+  const [fps, setFps] = useState(60);
   const crrSpeed = useRef(30);
   const maxRef = useRef(false);
   const prevFrameId = useRef(0);
@@ -40,17 +40,6 @@ export const FPSController: IComponent<{
     },
     [updateTick]
   );
-
-  // const handleTabChange = useCallback(() => {
-  //   if (document.visibilityState == "visible") {
-  //     crrSpeed.current = speed;
-  //     if (Browser.isSafari) {
-  //       startRender();
-  //     }
-  //   } else {
-  //     crrSpeed.current = 0;
-  //   }
-  // }, [speed, startRender]);
 
   useEffect(() => {
     const fps_check = setInterval(() => {

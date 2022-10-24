@@ -18,7 +18,7 @@ static mut SYSTEM: Mutex<System> = Mutex::new(System {
     rules: vec![],
     frame_count: 0,
     rendering: false,
-    compute_tick: 64,
+    compute_tick: 60,
     canvas_padding: 10f64,
     engine_loaded: false,
 });
