@@ -29,6 +29,7 @@ impl Atom {
         self.p = Vector::random(padding, width - padding, padding, height - padding);
         self.v = Vector { x: 0f64, y: 0f64 };
     }
+
     /**
      * Change reverse direction of atom when it move out of canvas
      * This will prevent atom move outside of canvas

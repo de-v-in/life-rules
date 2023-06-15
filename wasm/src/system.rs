@@ -110,7 +110,7 @@ impl System {
             atoms.remove(removed);
         }
     }
-    
+
     /**
      * Refresh all atoms into random state
      */
